@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>NUSIC-nikku</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    color: #0171d3;
+    font-family: 'Inter', sans-serif;
+    font-style: bold;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden; /* Prevent scrolling */
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    height: 100svh; /* Prevent mobile URL bar issues */
+  }
+  .top, .middle, .bottom {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .top {
+    height: 10%;
+    background: #98c9fa;
+  }
+  .middle {
+    height: 70%;
+    background: #98c9fa;
+    flex-direction: column; /* Stack image or div */
+    position: relative;
+  }
+  .bottom {
+    height: 20%;
+    justify-content: space-around;
+    background: #98c9fa;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  .top img, .middle img, .bottom img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .bottom img {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+    border-radius: 50%;
+    height:50px;
+  }
+  .clickable-img {
+    margin-top: 10px;
+    max-width: 150px;
+    cursor: pointer;
+    position: absolute;
+    height:200px;
+    top:50px;
+    border:2px solid white;
+    border-radius: 10px;
+    z-index: 2;
+  }
+  .names-list {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    height: 200px;
+    position: absolute;
+    top:50px;
+  }
+  .names-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 80%;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-y: auto;
+  }
+  .names-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #0171d3;
+    border: 80%;
+  }
+  .back-btn {
+    padding: 8px 16px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: -40px;
+  }
+  .control-btn{
+    cursor: pointer;
+    margin:0 10px;
+  }
+  .progress{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+  }
+  .progress-bar{
+    cursor: pointer;
+    width: 90%;
+  }
+  .time-display {
+    display: flex;
+    justify-content: space-between;
+    width: 95%;
+    font-size: 14px;
+}
+  .controls{
+    display: flex;
+    justify-content: space-evenly;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Top container -->
+  <div class="top">
+    <img src="sources/logo.png" alt="NUSIC{Logo}">
+  </div>
+
+  <!-- Middle container -->
+  <div class="middle">
+    <img src="sources/album.jpeg" alt="Middle Image">
+
+    <!-- Clickable image -->
+    <img src="sources/sejal-playlist.png" alt="Clickable Button" class="clickable-img" id="middle-btn-img">
+
+    <!-- Hidden list div -->
+    <div class="names-list" id="names-list">
+      <button class="back-btn" id="back-btn">Back</button>
+      <ul id="song-list">
+      </ul>
+    </div>
+  </div>
+
+  <!-- Bottom container -->
+  <div class="bottom">
+    <div id="songName"class="song-name"></div>
+    <!-- Progress Bar -->
+    <div class="progress">
+    <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
+
+    <!-- Time display -->
+    <div class="time-display">
+        <span id="currentTime">00:00</span>
+        <span id="duration">00:00</span>
+    </div>
+
+    <!-- Hidden audio element -->
+    <audio id="audioPlayer" src="demo.mp3"></audio>
+    </div>
+    <div class="controls">
+    <img src="sources/pre.png" alt="Previous">
+    <img id="playPauseBtn" class="control-btn" src="sources/pause.png" alt="Play/Pause">
+    <img src="sources/next.png" alt="Next">
+    </div>
+  </div>
+</div>
+
+<script>
+// Toggle between image and list
+  const clickableImg = document.getElementById('middle-btn-img');
+  const namesList = document.getElementById('names-list');
+  const backBtn = document.getElementById('back-btn');
+
+  clickableImg.addEventListener('click', () => {
+    clickableImg.style.display = "none";
+    namesList.style.display = "flex";
+  });
+
+  backBtn.addEventListener('click', () => {
+    namesList.style.display = "none";
+    clickableImg.style.display = "block";
+  });
+  
+  
+  let currentSongIndex = 0;
+  let songs = [];
+  const audioPlayer = document.getElementById("audioPlayer");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const progressBar = document.getElementById("progressBar");
+  const currentTimeEl = document.getElementById("currentTime");
+  const durationEl = document.getElementById("duration");
+  
+  // Load songs from external JSON
+  fetch("sources/songs.json")
+    .then(response => response.json())
+    .then(data => {
+      songs = data;
+      loadSong(currentSongIndex);
+      
+      const songListElement = document.getElementById('song-list');
+    songListElement.innerHTML = ''; // clear any existing items
+
+    data.forEach((song,index) => {
+      const li = document.createElement('li');
+      li.textContent = song.title; // Display the song title
+      songListElement.appendChild(li);
+      li.addEventListener('click', () => {
+    currentSongIndex = index;
+    loadSong(currentSongIndex); // calls your existing function
+    audioPlayer.play();
+    playPauseBtn.src = "sources/play.png";
+    });
+    });
+    })
+    .catch(err => console.error("Error loading songs.json", err));
+  
+  function loadSong(index) {
+    if (!songs.length) return;
+    audioPlayer.src = songs[index].file;
+    audioPlayer.load();
+    document.getElementById("songName").textContent = songs[index].title;
+  }
+  
+  function togglePlayPause() {
+    if (audioPlayer.paused) {
+      audioPlayer.play();
+      playPauseBtn.src = "sources/play.png";
+    } else {
+      audioPlayer.pause();
+      playPauseBtn.src = "sources/pause.png";
+    }
+  }
+  
+  function nextSong() {
+    currentSongIndex = (currentSongIndex + 1) % songs.length;
+    loadSong(currentSongIndex);
+    audioPlayer.play();
+  }
+  
+  function prevSong() {
+    currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+    loadSong(currentSongIndex);
+    audioPlayer.play();
+  }
+  
+  // Progress bar update
+  audioPlayer.addEventListener("timeupdate", () => {
+    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+    progressBar.value = progress || 0;
+    currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+    durationEl.textContent = formatTime(audioPlayer.duration);
+  });
+  
+  // Seek in song
+  progressBar.addEventListener("input", () => {
+    audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
+  });
+  
+  function formatTime(time) {
+    if (isNaN(time)) return "00:00";
+    let minutes = Math.floor(time / 60);
+    let seconds = Math.floor(time % 60);
+    if (seconds < 10) seconds = "0" + seconds;
+    return `${minutes}:${seconds}`;
+  }
+  
+  // Attach events to buttons
+  document.querySelector(".controls img[alt='Previous']").addEventListener("click", prevSong);
+  document.querySelector(".controls img[alt='Next']").addEventListener("click", nextSong);
+  playPauseBtn.addEventListener("click", togglePlayPause);
+  // Auto play next song when current one ends
+  audioPlayer.addEventListener("ended", nextSong);
+</script>
+
+</body>
+</html>
